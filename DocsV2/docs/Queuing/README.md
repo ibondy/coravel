@@ -34,7 +34,8 @@ Inject an instance of the `Coravel.Queuing.Interfaces.IQueue` interface into you
 IQueue _queue;
 
 public HomeController(IQueue queue) {
-    this._queue = queue;}
+    this._queue = queue;
+}
 ```
 
 ### Queuing Invocables
@@ -50,6 +51,39 @@ Queuing invocables is the recommended way to use Coravel's queuing.
 
 To learn about creating and using invocables [see here.](/Invocables/)
 :::
+
+### Queue An Invocable With A Payload
+
+Many times you want to queue a background job and also supply a payload/parameters.
+
+For example, you might have an invocable `SendWelcomeUserEmailInvocable`. However, you need to supply a specific user's information so that the correct user will receive the email!
+
+First, add the `IInvocableWithPayload<T>` interface to your existing invocable:
+
+```csharp
+                                                         // This one 👇
+public class SendWelcomeUserEmailInvocable : IInvocable, IInvocableWithPayload<UserModel>
+{
+  // This is the implementation of the interface 👇
+  public UserModel Payload { get; set; }
+
+  /* Constructor, etc. */
+
+  public async Task Invoke()
+  {
+    // `this.Payload` will be available to use now.
+  }
+}
+```
+
+To queue this invocable, use the `QueueInvocableWithPayload` method:
+
+```csharp
+var userModel = await _userService.Get(userId);
+queue.QueueInvocableWithPayload<SendWelcomeUserEmailInvocable, UserModel>(userModel);
+```
+
+Now your job will be queued to execute in the background with the specific data it needs to run!
 
 ### Queuing An Async Task
 
@@ -122,6 +156,35 @@ provider
     .ConfigureQueue()
     .LogQueuedTaskProgress(provider.GetService<ILogger<IQueue>>());
 ```
+
+### Queuing Cancellable Invocables
+
+Sometimes you have a long-running invocable that needs the ability to be cancelled (manually by you or by the system when the application is being shutdown).
+
+By using `QueueCancellableInvocable` you can build invocables that will have this ability!
+
+First, add the `Coravel.Queuing.Interfaces.ICancellableTask` to your invocable and implement the property:
+
+`CancellationToken Token { get; set; }`
+
+Now, in your `Invoke` method, you will have access to check if the token has been cancelled.
+
+For example:
+
+```csharp
+while(!this.Token.IsCancellationRequested)
+{
+  await ProcessNextRecord();
+}
+```
+
+:::warning
+Coravel will automatically dispose all `TokenCancellationSource` objects associated with invocables that have been consumed by the queue. 
+
+Also, when the application is being shutdown, Coravel will also cancel _all_ tokens to make sure your invocables can stop their work and allow a graceful shutdown.
+
+If you are manually cancelling/handling tokens then you'll have to code around the potential for your tokens to have been cancelled and even disposed.
+:::
 
 ## On App Closing
 

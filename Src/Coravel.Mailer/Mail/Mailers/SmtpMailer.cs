@@ -84,7 +84,7 @@ namespace Coravel.Mailer.Mail.Mailers
                 client.ServerCertificateValidationCallback = this._certCallback;
                 await client.ConnectAsync(this._host, this._port).ConfigureAwait(false);
 
-                if (this._username != null && this._password != null)
+                if (this.UseSMTPAuthentication())
                 {
                     await client.AuthenticateAsync(this._username, this._password);
                 }
@@ -96,5 +96,11 @@ namespace Coravel.Mailer.Mail.Mailers
 
         private static MailboxAddress AsMailboxAddress(MailRecipient recipient) =>
             new MailboxAddress(recipient.Name, recipient.Email);
+
+        public bool UseSMTPAuthentication() {
+            bool bypassAuth = string.IsNullOrEmpty(this._username)
+                && string.IsNullOrEmpty(this._password);
+            return !bypassAuth;
+        }
     }
 }

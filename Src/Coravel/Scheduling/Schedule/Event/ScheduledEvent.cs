@@ -1,9 +1,11 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Coravel.Invocable;
 using Coravel.Scheduling.Schedule.Cron;
 using Coravel.Scheduling.Schedule.Interfaces;
 using Coravel.Tasks;
+using Coravel.Scheduling.Schedule.Zoned;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Coravel.Scheduling.Schedule.Event
@@ -19,6 +21,8 @@ namespace Coravel.Scheduling.Schedule.Event
         private Func<Task<bool>> _whenPredicate;
         private bool _isScheduledPerSecond = false;
         private int? _secondsInterval = null;
+        private object[] _constructorParameters = null;
+        private ZonedTime _zonedTime = ZonedTime.AsUTC();
 
         public ScheduledEvent(Action scheduledAction)
         {
@@ -37,6 +41,13 @@ namespace Coravel.Scheduling.Schedule.Event
             return WithInvocableType(scopeFactory, typeof(T));
         }
 
+        internal static ScheduledEvent WithInvocableAndParams<T>(IServiceScopeFactory scopeFactory, object[] parameters) where T : IInvocable
+        {
+            var scheduledEvent = WithInvocableType(scopeFactory, typeof(T));
+            scheduledEvent._constructorParameters = parameters;
+            return scheduledEvent;
+        }
+
         public static ScheduledEvent WithInvocableType(IServiceScopeFactory scopeFactory, Type invocableType)
         {
             var scheduledEvent = new ScheduledEvent();
@@ -48,15 +59,17 @@ namespace Coravel.Scheduling.Schedule.Event
         private static readonly int _OneMinuteAsSeconds = 60;
         public bool IsDue(DateTime utcNow)
         {
+            var zonedNow = this._zonedTime.Convert(utcNow);
+
             if (this._isScheduledPerSecond)
             {
-                var isSecondDue = this.IsSecondsDue(utcNow);
-                var isWeekDayDue = this._expression.IsWeekDayDue(utcNow);
+                var isSecondDue = this.IsSecondsDue(zonedNow);
+                var isWeekDayDue = this._expression.IsWeekDayDue(zonedNow);
                 return isSecondDue && isWeekDayDue;
             }
             else
             {
-                return this._expression.IsDue(utcNow);
+                return this._expression.IsDue(zonedNow);
             }
         }
 
@@ -72,7 +85,7 @@ namespace Coravel.Scheduling.Schedule.Event
             }
         }
 
-        public async Task InvokeScheduledEvent()
+        public async Task InvokeScheduledEvent(CancellationToken cancellationToken)
         {
             if (await WhenPredicateFails())
             {
@@ -89,12 +102,27 @@ namespace Coravel.Scheduling.Schedule.Event
                 /// and allow DI to inject it's dependencies.
                 using (var scope = this._scopeFactory.CreateScope())
                 {
-                    if (scope.ServiceProvider.GetRequiredService(this._invocableType) is IInvocable invocable)
+                    if (GetInvocable(scope.ServiceProvider) is IInvocable invocable)
                     {
+                        if (invocable is ICancellableInvocable cancellableInvokable)
+                        {
+                            cancellableInvokable.CancellationToken = cancellationToken;
+                        }
+
                         await invocable.Invoke();
                     }
                 }
             }
+        }
+
+        private object GetInvocable(IServiceProvider serviceProvider)
+        {
+            if (this._constructorParameters?.Length > 0)
+            {
+                return ActivatorUtilities.CreateInstance(serviceProvider, this._invocableType, this._constructorParameters);
+            }
+
+            return serviceProvider.GetRequiredService(this._invocableType);
         }
 
         public bool ShouldPreventOverlapping() => this._preventOverlapping;
@@ -310,6 +338,12 @@ namespace Coravel.Scheduling.Schedule.Event
             this._secondsInterval = seconds;
             this._isScheduledPerSecond = true;
             this._expression = new CronExpression("* * * * *");
+            return this;
+        }
+
+        public IScheduledEventConfiguration Zoned(TimeZoneInfo timeZoneInfo)
+        {
+            this._zonedTime = new ZonedTime(timeZoneInfo);
             return this;
         }
     }

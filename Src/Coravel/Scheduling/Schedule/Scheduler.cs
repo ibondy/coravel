@@ -2,12 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Coravel.Queuing;
-using Coravel.Queuing.Interfaces;
 using Coravel.Scheduling.Schedule.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using Coravel.Scheduling.Schedule.Helpers;
 using Coravel.Scheduling.Schedule.Event;
 using Microsoft.Extensions.DependencyInjection;
 using Coravel.Invocable;
@@ -28,6 +25,7 @@ namespace Coravel.Scheduling.Schedule
         private int _schedulerIterationsActiveCount = 0;
         private IDispatcher _dispatcher;
         private string _currentWorkerName;
+        private CancellationTokenSource _cancellationTokenSource;
 
         public Scheduler(IMutex mutex, IServiceScopeFactory scopeFactory, IDispatcher dispatcher)
         {
@@ -36,6 +34,15 @@ namespace Coravel.Scheduling.Schedule
             this._scopeFactory = scopeFactory;
             this._dispatcher = dispatcher;
             this._currentWorkerName = "_default";
+            this._cancellationTokenSource = new CancellationTokenSource();
+        }
+
+        public void CancelAllCancellableTasks()
+        {
+            if (!_cancellationTokenSource.IsCancellationRequested)
+            {
+                this._cancellationTokenSource.Cancel();
+            }
         }
 
         public IScheduleInterval Schedule(Action actionToSchedule)
@@ -55,6 +62,13 @@ namespace Coravel.Scheduling.Schedule
         public IScheduleInterval Schedule<T>() where T : IInvocable
         {
             ScheduledEvent scheduled = ScheduledEvent.WithInvocable<T>(this._scopeFactory);
+            this._tasks.TryAdd(Guid.NewGuid().ToString(), new ScheduledTask(this._currentWorkerName, scheduled));
+            return scheduled;
+        }
+
+        public IScheduleInterval ScheduleWithParams<T>(params object[] parameters) where T : IInvocable
+        {
+            ScheduledEvent scheduled = ScheduledEvent.WithInvocableAndParams<T>(this._scopeFactory, parameters);
             this._tasks.TryAdd(Guid.NewGuid().ToString(), new ScheduledTask(this._currentWorkerName, scheduled));
             return scheduled;
         }
@@ -117,6 +131,16 @@ namespace Coravel.Scheduling.Schedule
             return true; // Nothing to remove - was successful.
         }
 
+        private async Task InvokeEventWithLoggerScope(ScheduledEvent scheduledEvent)
+        {
+            var eventInvocableTypeName = scheduledEvent.InvocableType()?.Name;
+            using (_logger != null && eventInvocableTypeName != null ?
+                _logger.BeginScope($"Invocable Type : {eventInvocableTypeName}") : null)
+            {
+                await InvokeEvent(scheduledEvent);
+            }
+        }
+
         private async Task InvokeEvent(ScheduledEvent scheduledEvent)
         {
             try
@@ -125,9 +149,9 @@ namespace Coravel.Scheduling.Schedule
 
                 async Task Invoke()
                 {
-                    this._logger?.LogInformation("Scheduled task started...");
-                    await scheduledEvent.InvokeScheduledEvent();
-                    this._logger?.LogInformation("Scheduled task finished...");
+                    this._logger?.LogDebug("Scheduled task started...");
+                    await scheduledEvent.InvokeScheduledEvent(this._cancellationTokenSource.Token);
+                    this._logger?.LogDebug("Scheduled task finished...");
                 };
 
                 if (scheduledEvent.ShouldPreventOverlapping())
@@ -155,12 +179,9 @@ namespace Coravel.Scheduling.Schedule
             {
                 await this.TryDispatchEvent(new ScheduledEventFailed(scheduledEvent, e));
 
-                this._logger?.LogError("A scheduled task threw an Exception: " + e.Message);
+                this._logger?.LogError(e, "A scheduled task threw an Exception: ");
 
-                if (this._errorHandler != null)
-                {
-                    this._errorHandler(e);
-                }
+                this._errorHandler?.Invoke(e);
             }
         }
 
@@ -185,12 +206,12 @@ namespace Coravel.Scheduling.Schedule
                 // If this task is scheduled as a cron based task (should only be checked if due per min)
                 // but the time is not at the minute mark, we won't include those tasks to be checked if due.
                 // The second based schedules are always checked.
-                if(taskIsPerMinuteCronTask && timerIsNotAtMinute)
+                if (taskIsPerMinuteCronTask && timerIsNotAtMinute)
                 {
                     appendTask = false;
                 }
 
-                if(appendTask)
+                if (appendTask)
                 {
                     scheduledWorkers.Add(keyValue.Value);
                 }
@@ -213,7 +234,7 @@ namespace Coravel.Scheduling.Schedule
                     foreach (var workerTask in workerWithTasks)
                     {
                         var scheduledEvent = workerTask.ScheduledEvent;
-                        await InvokeEvent(scheduledEvent);
+                        await InvokeEventWithLoggerScope(scheduledEvent);
                     }
                 });
             });

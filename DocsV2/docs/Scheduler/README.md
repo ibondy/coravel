@@ -64,6 +64,12 @@ scheduler
 
 What a simple, terse and expressive syntax! Easy Peasy!
 
+:::tip Cancel Long-Running Invocables
+Make your long-running invocable classes implement `Coravel.Invocable.ICancellableInvocable` to enable it to gracefully abort on application shutdown.
+
+The interface includes a property `CancellationToken` that you can check using `CancellationToken.IsCancellationRequested`, etc.
+:::
+
 ### Async Tasks
 
 Coravel will also handle scheduling `async` methods by using the `ScheduleAsync()` method.
@@ -98,6 +104,48 @@ scheduler.Schedule(
 .EveryMinute();
 ```
 
+### Scheduling With Additional Parameters
+
+The `ScheduleWithParams<T>()` method allows you to schedule the same invocable multiple times with different parameters.
+
+```csharp
+private class BackupDatabaseTableInvocable : IInvocable
+{
+    private DbContext _dbContext;
+    private string _tableName;
+
+    public BackupDatabaseTableInvocable(DbContext dbContext, string tableName)
+    {
+        this._dbContext = dbContext; // Injected via DI.
+        this._tableName = tableName; // injected via schedule configuration (see next code block).
+    }
+
+    public Task Invoke()
+    {
+        // Do the logic.
+    }
+}
+```
+
+You might configure it like this:
+
+```csharp
+// In this case, backing up products 
+// more often than users is required.
+
+scheduler
+    .ScheduleWithParams<BackupDatabaseTableInvocable>("[dbo].[Users]")
+    .Daily();
+
+scheduler
+    .ScheduleWithParams<BackupDatabaseTableInvocable>("[dbo].[Products]")
+    .EveryHour();
+```
+
+:::warning
+Ensure that any parameters to be injected via dependency injection are listed first in your constructor arguments.
+:::
+
 ## Intervals
 
 After calling `Schedule` or `ScheduleAsync`, methods to specify the schedule interval are available.
@@ -124,7 +172,7 @@ After calling `Schedule` or `ScheduleAsync`, methods to specify the schedule int
 | `Cron("* * * * *")`               | Run the task using a Cron expression |
 
 :::tip
-Please note that the scheduler is using UTC time.
+The scheduler uses UTC time by default.
 :::
 
 ### Cron Expressions
@@ -158,6 +206,25 @@ Be careful since you could do something like `.Weekend().Weekday()`, which means
 :::
 
 ## Extras
+
+### Zoned Schedules
+
+Sometimes you do want to run your schedules against a particular time zone. For these scenarios, use the `Zoned` method:
+
+```csharp
+scheduler
+    .Schedule<SendWelcomeUserEmail>()
+    .DailyAt(13, 30)
+    .Zoned(TimeZoneInfo.Local);
+```
+
+You'll need to supply an instance of `TimeZoneInfo` to the `Zoned` method. 
+
+:::warning
+Creating a valid `TimeZoneInfo` differs depending on whether you're on Windows, Linux or OSX. 
+
+Also, you may get unexpected behavior due to daylight savings time. Be careful!
+:::
 
 ### Custom Boolean Constraint
 

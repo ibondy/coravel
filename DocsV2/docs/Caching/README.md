@@ -59,6 +59,13 @@ string BigDataLocalFunction()
 this._cache.Remember("BigDataCacheKey", BigDataLocalFunction, TimeSpan.FromMinutes(10));
 ```
 
+::: tip
+
+**Multiple Calls Does Not Invalidate Cache**
+
+Calling `Remember` a second (or more times) will _not_ invalidate the cache. The cached items will last as long as your code specified when using this method. This enables the usage of the method to be simple and easy.
+:::
+
 ### RememberAsync
 
 It's `Remember`, but async:
@@ -73,6 +80,8 @@ async SomeType BigDataLocalFunctionAsync()
 await this._cache.RememberAsync("BigDataCacheKey", BigDataLocalFunctionAsync, TimeSpan.FromMinutes(10));
 ```
 
+_Note about cache invalidation from `Remember` applies._
+
 ### Forever
 
 Similar to `Remember`, but your item will be cached indefinitely.
@@ -81,12 +90,36 @@ Similar to `Remember`, but your item will be cached indefinitely.
 this._cache.Forever("BigDataCacheKey", BigDataLocalFunction);
 ```
 
+_Note about cache invalidation from `Remember` applies._
+
 ### ForeverAsync
 
 It's `Forever`, but async:
 
 ```csharp
 await this._cache.ForeverAsync("BigDataCacheKey", BigDataLocalFunctionAsync);
+```
+
+_Note about cache invalidation from `Remember` applies._
+
+### HasAsync
+
+Will tell you if a non-expired key exists in the cache.
+
+```csharp
+bool hasKey = await this._cache.HasAsync("BigDataCacheKey");
+```
+
+### GetAsync
+
+Get a specific value from the cache. 
+
+:::warning
+Will throw an exception if the key has expired. This is usually used in conjunction with `HasAsync`.
+:::
+
+```csharp
+string bigDataValue = await this._cache.GetAsync<string>("BigDataCacheKey");
 ```
 
 ### Flush

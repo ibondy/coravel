@@ -89,36 +89,6 @@ namespace Demo
 
             app.ApplicationServices.UseScheduler(scheduler =>
             {
-                // scheduler.Schedule(() => Console.WriteLine($"Every minute (ran at ${DateTime.UtcNow}) on thread {Thread.CurrentThread.ManagedThreadId}"))
-                //     .EveryMinute();
-
-                // scheduler.Schedule(() => Console.WriteLine($"Every minute#2 (ran at ${DateTime.UtcNow}) on thread {Thread.CurrentThread.ManagedThreadId}"))
-                //     .EveryMinute();
-
-                // scheduler.ScheduleAsync(async () => 
-                // {
-                //     await Task.Delay(10000);
-                //     Console.WriteLine($"Every minute#3 (ran at ${DateTime.UtcNow}) on thread {Thread.CurrentThread.ManagedThreadId}");
-                // })
-                // .EveryMinute();
-
-                // scheduler.Schedule(() => Console.WriteLine($"Every five minutes (ran at ${DateTime.UtcNow}) on thread {Thread.CurrentThread.ManagedThreadId}"))
-                //     .EveryFiveMinutes();
-
-                scheduler
-                    .Schedule<SendPendingNotifications>().EveryMinute();
-                                    scheduler.Schedule<SendNightlyReportsEmailJob>()
-                    .EverySecond()
-                    .PreventOverlapping("SendNightlyReportsEmailJob");
-
-                //     scheduler.ScheduleAsync(async () => {
-                //         var dispatcher = app.ApplicationServices.GetRequiredService<IDispatcher>();
-                //         await dispatcher.Broadcast(new DemoEvent("This event happens every minute!"));
-                //     }).EveryMinute();
-
-                scheduler.OnWorker("EmailTasks");
-
-
                 scheduler.OnWorker("CPUIntensiveTasks");
                 scheduler
                     .Schedule<RebuildStaticCachedData>().Hourly();
@@ -127,7 +97,7 @@ namespace Demo
                 scheduler.Schedule(
                     () => Console.WriteLine($"Runs every second. Ran at: {DateTime.UtcNow}")
                 ).EverySecond();
-                scheduler.Schedule(() => Console.WriteLine($"Runs every five seconds. Ran at: {DateTime.UtcNow}")).EveryFiveSeconds();
+                scheduler.Schedule(() => Console.WriteLine($"Runs every thirty seconds. Ran at: {DateTime.UtcNow}")).EveryThirtySeconds().Zoned(TimeZoneInfo.Local);
                 scheduler.Schedule(() => Console.WriteLine($"Runs every ten seconds. Ran at: {DateTime.UtcNow}")).EveryTenSeconds();
                 scheduler.Schedule(() => Console.WriteLine($"Runs every fifteen seconds. Ran at: {DateTime.UtcNow}")).EveryFifteenSeconds();
                 scheduler.Schedule(() => Console.WriteLine($"Runs every thirty seconds. Ran at: {DateTime.UtcNow}")).EveryThirtySeconds();
