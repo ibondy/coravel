@@ -2,8 +2,8 @@
 [![Netlify Status](https://api.netlify.com/api/v1/badges/5f511f8d-d256-4e4f-a21f-b7a444b4d4f9/deploy-status)](https://app.netlify.com/sites/coravel-docs/deploys)
 
 [![BuiltWithDot.Net shield](https://builtwithdot.net/project/32/coravel/badge)](https://builtwithdot.net/project/32/coravel)
-![Nuget](https://img.shields.io/nuget/v/Coravel.svg)
-![NuGet](https://img.shields.io/nuget/dt/Coravel.svg)
+[![Nuget](https://img.shields.io/nuget/v/Coravel.svg)](https://www.nuget.org/packages/Coravel)
+[![NuGet](https://img.shields.io/nuget/dt/Coravel.svg)](https://www.nuget.org/packages/Coravel)
 
 
 <div align="center">
@@ -72,11 +72,9 @@ E-mails are not as easy as they should be. Luckily for you, Coravel solves this 
 - [.NET Core Worker Service using Coravel's Task Scheduling (3.0+)](https://github.com/jamesmh/coravel/tree/master/Samples/WorkerServiceScheduler)
 - [.NET Core Console app using the Host Builder and Coravel (< 3.0)](https://github.com/jamesmh/coravel/tree/master/Samples/HostBuilderConsole)
 
-## Contributing
+## Support Me
 
-If you are fixing a typo in one file / place - issue a PR.
-
-Otherwise, please **always** create an issue first ;)
+You can support my ongoing open-source work on [BuyMeACoffee](https://www.buymeacoffee.com/gIPOyBD5N).
 
 ## Coravel Pro
 

@@ -5,7 +5,7 @@ meta:
   - name: keywords
     content: dotnet dotnetcore ".NET Core task scheduling" ".NET Core scheduler" ".NET Core framework" ".NET Core Queue" ".NET Core Queuing" ".NET Core Caching" Coravel ".NET Core Mailing" ".NET Core Mailer"
 ---
-
+`
 # Mailing
 
 [[toc]]
@@ -39,6 +39,7 @@ This will install the Nuget package `Coravel.Mailer`, along with scaffolding som
 - `~/Views/Mail/_ViewImports.cshtml` - Allows you use Coravel's view components
 - `~/Views/Mail/Example.cshtml` - A sample mail view
 - `~/Mailables/Example.cs` - A sample Mailable
+
 
 ## Config
 
@@ -141,7 +142,7 @@ In your `appsettings.json`, you may add the following global values that will po
         /* If set, displayed in the footer. */
         "CompanyAddress": "1111 My Company's Address",
 
-        /* If set, displayed in the footer inside the copywrite statement. */
+        /* If set, displayed in the footer inside the copyright statement. */
         "CompanyName": "My Company's Name",
 
         /* If set, is used to color the header (when using Template.cshtml) */
@@ -223,6 +224,10 @@ Pass an instance of `MailRecipient` to the `To()` method.
 
 Pass an `IEnumerable<MailRecipient>` to the `To()` method.
 
+#### Attachments
+
+Attach multiple files by passing an `Attachment` to the `Attach()` method.
+
 #### Auto-Detect Email Address And Name
 
 Using an `object` that has a `public` field or property `Email` and `Name`, you can pass it to the `To()` method.
@@ -252,6 +257,26 @@ Further methods, which all accept either `IEnumerable<string>` or `IEnumerable<M
 ### Specifying Mail Templates
 
 #### Razor Templates
+
+##### .NET Core 3.1+
+
+In .NET Core 3.1 there were some breaking changes to the way razor views are handled.
+
+Which ever project(s) you have razor views inside, you'll need to make sure .NET compiles them at build time.
+
+Here's what you'll need to change within your `.csproj` file to enable this:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk.Razor">  👈 Make sure it's this SDK.
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AddRazorSupportForMvc>True</AddRazorSupportForMvc> 👈 Add this too.
+  </PropertyGroup>
+```
+
+##### Razor Views
 
 Using a razor view to send e-mails is done using the `View(string viewPath, T viewModel)` method.
 
@@ -329,7 +354,7 @@ Assigned a value to `ViewBag.Preview` will display as a "preview" on some email 
 
 ### Footer
 
-The footer will grab values from your `appsettings.json` file, if they are set (see [Global Template Configuration](Mailing/#global-template-configuration)).
+The footer will grab values from your `appsettings.json` file, if they are set (see [Global Template Configuration](#global-template-configuration)).
 
 ### Template Sections
 
@@ -361,7 +386,7 @@ Override the entire footer with custom content.
 
 ### Basic
 
-Inject an instance of `Coravel.Mailer.Mail.IMailer` and pass a [Mailable](#mailable-basics) to the `SendAsync` method:
+Inject an instance of `Coravel.Mailer.Mail.IMailer` and pass a [Mailable](#mailables) to the `SendAsync` method:
 
 ```csharp
 private readonly IMailer _mailer;
