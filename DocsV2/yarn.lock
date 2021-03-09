@@ -1597,8 +1597,8 @@ cli-cursor@^2.0.0:
     restore-cursor "^2.0.0"
 
 clipboard@^2.0.0:
-  version "2.0.6"
-  resolved "https://registry.yarnpkg.com/clipboard/-/clipboard-2.0.6.tgz#52921296eec0fdf77ead1749421b21c968647376"
+  version "2.0.7"
+  resolved "https://registry.yarnpkg.com/clipboard/-/clipboard-2.0.7.tgz#da927f817b1859426df39212ac81feb07dbaeadc"
   dependencies:
     good-listener "^1.2.2"
     select "^1.1.2"
@@ -4904,8 +4904,8 @@ pretty-time@^1.1.0:
   resolved "https://registry.yarnpkg.com/pretty-time/-/pretty-time-1.1.0.tgz#ffb7429afabb8535c346a34e41873adf3d74dd0e"
 
 prismjs@^1.13.0:
-  version "1.21.0"
-  resolved "https://registry.yarnpkg.com/prismjs/-/prismjs-1.21.0.tgz#36c086ec36b45319ec4218ee164c110f9fc015a3"
+  version "1.23.0"
+  resolved "https://registry.yarnpkg.com/prismjs/-/prismjs-1.23.0.tgz#d3b3967f7d72440690497652a9d40ff046067f33"
   optionalDependencies:
     clipboard "^2.0.0"
 
